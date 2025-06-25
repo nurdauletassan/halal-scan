@@ -6,4 +6,10 @@ psycopg2-binary
 python-jose[cryptography]
 pydantic
 passlib[bcrypt]
-email-validator 
+email-validator
+openai>=1.0.0
+python-multipart>=0.0.6
+requests 
+python-dotenv
+httpx
+pytesseract

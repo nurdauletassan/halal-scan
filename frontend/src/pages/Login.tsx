@@ -29,7 +29,7 @@ export default function LoginPage() {
 
       if (response.data.access_token) {
         localStorage.setItem("access_token", response.data.access_token)
-        navigate("/") // Redirect to home page
+        navigate("/scan") // Redirect to home page
       }
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {

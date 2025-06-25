@@ -17,11 +17,22 @@ import { Camera, Upload, CheckCircle, XCircle, Loader2, Info, Star, AlertTriangl
  */
 
 export default function HalalCheckApp() {
-  const [selectedImage, setSelectedImage] = useState(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState(null)
-  const fileInputRef = useRef(null)
-  const cameraInputRef = useRef(null)
+  const [analysisResult, setAnalysisResult] = useState<null | {
+    status: string
+    confidence: string
+    productName: string
+    ingredients: string[]
+    concerns: string[]
+    certification?: string | null
+    recommendation?: string
+    brand?: string
+    product_name?: string
+    error?: string
+  }>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -30,46 +41,56 @@ export default function HalalCheckApp() {
           label: "🏆 СЕРТИФИЦИРОВАН",
           color: "from-green-500 to-emerald-600",
           bgColor: "bg-green-400",
-          icon: <Shield className="mr-3 h-8 w-8 animate-pulse" />,
+          icon: <Shield className="h-8 w-8 animate-pulse" />,
           textColor: "text-green-800",
           badgeColor: "bg-green-100 text-green-800",
         }
       case "clean":
         return {
-          label: "✅ СОСТАВ ЧИСТЫЙ",
+          label: "СОСТАВ ЧИСТЫЙ",
           color: "from-blue-500 to-cyan-600",
           bgColor: "bg-blue-400",
-          icon: <CheckCircle className="mr-3 h-8 w-8 animate-pulse" />,
+          icon: <CheckCircle className="h-8 w-8 animate-pulse" />,
           textColor: "text-blue-800",
           badgeColor: "bg-blue-100 text-blue-800",
         }
       case "doubtful":
         return {
-          label: "⚠️ СОМНИТЕЛЬНОЕ",
+          label: "СОМНИТЕЛЬНОЕ",
           color: "from-yellow-500 to-orange-600",
           bgColor: "bg-yellow-400",
-          icon: <AlertTriangle className="mr-3 h-8 w-8 animate-pulse" />,
+          icon: <AlertTriangle className="h-8 w-8 animate-pulse" />,
           textColor: "text-yellow-800",
           badgeColor: "bg-yellow-100 text-yellow-800",
         }
       case "haram":
         return {
-          label: "❌ ХАРАМ",
+          label: "ХАРАМ",
           color: "from-red-500 to-rose-600",
           bgColor: "bg-red-400",
-          icon: <XCircle className="mr-3 h-8 w-8 animate-pulse" />,
+          icon: <XCircle className="h-8 w-8 animate-pulse" />,
           textColor: "text-red-800",
           badgeColor: "bg-red-100 text-red-800",
+        }
+      default:
+        return {
+          label: "Неизвестно",
+          color: "from-gray-400 to-gray-600",
+          bgColor: "bg-gray-400",
+          icon: <Info className="h-8 w-8 animate-pulse" />,
+          textColor: "text-gray-800",
+          badgeColor: "bg-gray-100 text-gray-800",
         }
     }
   }
 
-  const handleImageUpload = (event) => {
-    const file = event.target.files?.[0]
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result)
+      reader.onload = (ev) => {
+        const result = ev.target?.result
+        setSelectedImage(typeof result === 'string' ? result : null)
         setAnalysisResult(null)
       }
       reader.readAsDataURL(file)
@@ -78,54 +99,55 @@ export default function HalalCheckApp() {
 
   const analyzeImage = async () => {
     if (!selectedImage) return
-
     setIsAnalyzing(true)
-
-    // Имитация AI анализа
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    // Расширенные mock результаты для всех 4 категорий
-    const mockResults = [
-      {
-        status: "certified",
-        confidence: 98,
-        productName: "Халяльная говядина",
-        ingredients: ["Говядина", "Соль", "Специи"],
+    try {
+      // Преобразуем base64 обратно в файл
+      const res = await fetch(selectedImage)
+      const blob = await res.blob()
+      const file = new File([blob], "product.jpg", { type: blob.type })
+      const formData = new FormData()
+      formData.append("image", file)
+      const apiResponse = await fetch("http://localhost:8000/api/v1/products/analyze", {
+        method: "POST",
+        body: formData,
+      })
+      if (!apiResponse.ok) {
+        throw new Error("Ошибка анализа продукта")
+      }
+      const data = await apiResponse.json()
+      const normalizedData = {
+        ...data,
+        productName: data.productName || data.product_name || "",
+        brand: data.brand || "",
+      }
+      if (
+        normalizedData.status === "irrelevant" ||
+        !normalizedData.ingredients?.length ||
+        !normalizedData.productName
+      ) {
+        setAnalysisResult({
+          status: "irrelevant",
+          confidence: "0",
+          productName: "Неопознанный объект",
+          ingredients: [],
+          concerns: [],
+          certification: null,
+          recommendation:
+            "На фото не обнаружен пищевой продукт. Пожалуйста, сфотографируйте этикетку продукта питания с четко видимым составом.",
+        })
+      } else {
+        setAnalysisResult(normalizedData)
+      }
+    } catch (err) {
+      setAnalysisResult({
+        status: "error",
+        confidence: "0",
+        productName: "",
+        ingredients: [],
         concerns: [],
-        certification: "Halal Certified by JAKIM",
-        recommendation: "Продукт полностью безопасен для употребления мусульманами",
-      },
-      {
-        status: "clean",
-        confidence: 92,
-        productName: "Органическое печенье",
-        ingredients: ["Пшеничная мука", "Сахар", "Растительное масло", "Разрыхлитель"],
-        concerns: [],
-        certification: null,
-        recommendation: "Состав чистый, но нет официальной халяль сертификации",
-      },
-      {
-        status: "doubtful",
-        confidence: 75,
-        productName: "Шоколадные конфеты",
-        ingredients: ["Сахар", "Какао", "Молоко", "Эмульгаторы", "Ароматизаторы"],
-        concerns: ["Неизвестный источник эмульгаторов", "Ароматизаторы могут содержать спирт"],
-        certification: null,
-        recommendation: "Рекомендуется уточнить происхождение сомнительных ингредиентов",
-      },
-      {
-        status: "haram",
-        confidence: 95,
-        productName: "Желатиновые конфеты",
-        ingredients: ["Сахар", "Желатин", "Ароматизаторы", "Красители"],
-        concerns: ["Желатин свиного происхождения", "Содержит запрещенные компоненты"],
-        certification: null,
-        recommendation: "Продукт содержит харам ингредиенты и запрещен для мусульман",
-      },
-    ]
-
-    const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)]
-    setAnalysisResult(randomResult)
+        error: err.message,
+      })
+    }
     setIsAnalyzing(false)
   }
 
@@ -134,6 +156,12 @@ export default function HalalCheckApp() {
     setAnalysisResult(null)
     setIsAnalyzing(false)
   }
+
+  const confidenceColor = {
+    высокая: "bg-green-300",
+    средняя: "bg-yellow-300",
+    низкая: "bg-red-300",
+  }[analysisResult?.confidence as string] || "bg-gray-300";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 relative">
@@ -180,6 +208,14 @@ export default function HalalCheckApp() {
               <CardTitle className="text-2xl text-center">Проверить продукт</CardTitle>
             </CardHeader>
             <CardContent className="p-6 pt-6">
+              {/* input[type=file] всегда в DOM */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               {!selectedImage ? (
                 /* Upload Section */
                 <div className="text-center space-y-6">
@@ -205,31 +241,20 @@ export default function HalalCheckApp() {
                       Сфотографировать
                     </Button>
                     <Button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                          fileInputRef.current.click();
+                        }
+                      }}
                       variant="outline"
-                      className="border-green-600 text-green-600 hover:bg-green-50 px-8 py-3"
+                      className="border-2 border-green-500 bg-white text-green-600 hover:bg-green-50 px-8 py-3 hover:text-black"
                       size="lg"
                     >
                       <Upload className="mr-2 h-5 w-5" />
                       Загрузить из галереи
                     </Button>
                   </div>
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
                 </div>
               ) : (
                 /* Analysis Section */
@@ -247,7 +272,7 @@ export default function HalalCheckApp() {
 
                   {/* Analysis Button */}
                   {!analysisResult && !isAnalyzing && (
-                    <div className="text-center">
+                    <div className="flex justify-center gap-4 mt-4">
                       <Button
                         onClick={analyzeImage}
                         className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
@@ -255,6 +280,20 @@ export default function HalalCheckApp() {
                       >
                         <CheckCircle className="mr-2 h-5 w-5" />
                         Проверить халяльность
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                            fileInputRef.current.click();
+                          }
+                        }}
+                        variant="outline"
+                        className="border-2 border-green-500 bg-white text-green-600 hover:bg-green-50 px-8 py-3 hover:text-black"
+                        size="lg"
+                      >
+                        <Upload className="mr-2 h-5 w-5" />
+                        Выбрать другое фото
                       </Button>
                     </div>
                   )}
@@ -267,86 +306,166 @@ export default function HalalCheckApp() {
                       <p className="text-gray-500">ИИ изучает состав и сертификацию продукта</p>
                     </div>
                   )}
-
-                  {/* Analysis Results - Minimalistic */}
+                  {/* Analysis Results - Beautiful */}
                   {analysisResult && (
                     <div className="space-y-6">
-                      {/* Main Result */}
-                      <div className={`rounded-xl p-6 ${getStatusConfig(analysisResult.status).bgColor}`}>
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center">
-                            {getStatusConfig(analysisResult.status).icon}
-                            <div className="ml-3">
-                              <h3 className={`font-bold text-lg ${getStatusConfig(analysisResult.status).textColor}`}>
-                                {getStatusConfig(analysisResult.status).label}
-                              </h3>
-                              <p className="text-sm text-gray-600">{analysisResult.productName}</p>
-                            </div>
+                      {/* Main Result Card */}
+                      <div className="relative overflow-hidden">
+                        <div
+                          className={`bg-gradient-to-br ${getStatusConfig(analysisResult.status).color} rounded-2xl p-6 text-white shadow-xl`}
+                        >
+                          {/* Background Pattern */}
+                          <div className="absolute inset-0 opacity-10">
+                            <div
+                              className="absolute inset-0"
+                              style={{
+                                backgroundImage: `radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)`,
+                                backgroundSize: "24px 24px",
+                              }}
+                            ></div>
                           </div>
-                          <div className="text-right">
-                            <div className={`text-2xl font-bold ${getStatusConfig(analysisResult.status).textColor}`}>
-                              {analysisResult.confidence}%
+
+                          <div className="relative z-10">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center">
+                                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 mr-4">
+                                  {getStatusConfig(analysisResult.status).icon}
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-xl mb-1">
+                                    {getStatusConfig(analysisResult.status).label}
+                                  </h3>
+                                  <p className="text-white/80 text-sm">{analysisResult.productName}</p>
+                                </div>
+                              </div>
+
+                              {/* Chance Category */}
+                              {analysisResult.status !== "irrelevant" && (
+                                <div className="text-right">
+                                  <div
+                                    className={`inline-flex items-center px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30`}
+                                  >
+                                    <div
+                                      className={`w-2 h-2 rounded-full mr-2 ${confidenceColor}`}
+                                    ></div>
+                                    <span className="text-sm font-medium text-white">
+                                      {analysisResult.confidence} шанс
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="text-xs text-gray-500">точность</div>
+
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                              <p className="text-white/90 leading-relaxed">{analysisResult.recommendation}</p>
+                            </div>
                           </div>
                         </div>
-
-                        <p className="text-gray-700 text-sm leading-relaxed">{analysisResult.recommendation}</p>
                       </div>
 
-                      {/* Details */}
-                      <div className="grid gap-4">
-                        {/* Certification */}
-                        {analysisResult.certification && (
-                          <div className="bg-white rounded-lg p-4 border border-gray-200">
-                            <div className="flex items-center">
-                              <Star className="h-4 w-4 text-green-600 mr-2" />
-                              <span className="text-sm font-medium text-gray-700">Сертификация:</span>
+                      {/* Details Grid */}
+                      {analysisResult.status !== "irrelevant" && (
+                        <div className="grid gap-4">
+                          {/* Certification */}
+                          {analysisResult.certification && (
+                            <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                              <div className="flex items-center mb-3">
+                                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-2 mr-3">
+                                  <Star className="h-5 w-5 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-gray-800">Сертификация</h4>
+                              </div>
+                              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3">
+                                <p className="text-green-800 font-medium">{analysisResult.certification}</p>
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">{analysisResult.certification}</p>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Ingredients */}
-                        <div className="bg-white rounded-lg p-4 border border-gray-200">
-                          <div className="flex items-center mb-2">
-                            <Info className="h-4 w-4 text-blue-600 mr-2" />
-                            <span className="text-sm font-medium text-gray-700">Состав:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {analysisResult.ingredients.map((ingredient, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {ingredient}
-                              </Badge>
-                            ))}
-                          </div>
+                          {/* Ingredients */}
+                          {analysisResult.ingredients.length > 0 && (
+                            <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                              <div className="flex items-center mb-4">
+                                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2 mr-3">
+                                  <Info className="h-5 w-5 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-gray-800">Состав продукта</h4>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                {analysisResult.ingredients.map((ingredient, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-3 border border-gray-200"
+                                  >
+                                    <div className="flex items-center">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                      <span className="text-sm font-medium text-gray-700">{ingredient}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Concerns */}
+                          {analysisResult.concerns.length > 0 && (
+                            <div className="bg-white rounded-xl p-5 shadow-lg border border-orange-200 hover:shadow-xl transition-all duration-300">
+                              <div className="flex items-center mb-4">
+                                <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-lg p-2 mr-3">
+                                  <AlertTriangle className="h-5 w-5 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-orange-800">Проблемные компоненты</h4>
+                              </div>
+                              <div className="space-y-2">
+                                {analysisResult.concerns.map((concern, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-3 border-l-4 border-orange-400"
+                                  >
+                                    <div className="flex items-start">
+                                      <div className="w-2 h-2 bg-orange-500 rounded-full mr-3 mt-2"></div>
+                                      <span className="text-sm text-orange-800 leading-relaxed">{concern}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-
-                        {/* Concerns */}
-                        {analysisResult.concerns.length > 0 && (
-                          <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                            <div className="flex items-center mb-2">
-                              <AlertTriangle className="h-4 w-4 text-orange-600 mr-2" />
-                              <span className="text-sm font-medium text-orange-700">Проблемы:</span>
-                            </div>
-                            <ul className="space-y-1">
-                              {analysisResult.concerns.map((concern, index) => (
-                                <li key={index} className="text-sm text-orange-700">
-                                  • {concern}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
+                      )}
 
                       {/* Action Buttons */}
-                      <div className="flex gap-3 pt-4">
-                        <Button onClick={resetAnalysis} variant="outline" className="flex-1 bg-gray-100 hover:bg-green-200">
-                          Проверить другой
-                        </Button>
-                        <Button className="flex-1 bg-green-600 hover:bg-green-700">Сохранить</Button>
-                      </div>
+                      {analysisResult.status !== "irrelevant" ? (
+                        <div className="flex gap-3 pt-2">
+                          <Button
+                            onClick={resetAnalysis}
+                            variant="outline"
+                            className="flex-1 border-2 border-green-500 bg-white text-green-600 hover:bg-green-50 px-8 py-3 hover:text-black transition-all duration-200"
+                            size="lg"
+                          >
+                            <Camera className="mr-2 h-4 w-4" />
+                            Проверить другой
+                          </Button>
+                          <Button
+                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200"
+                            size="lg"
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            Сохранить
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3 pt-2">
+                          <Button
+                            onClick={resetAnalysis}
+                            variant="default"
+                            className="flex-1 border-2 border-black bg-white hover:border-green-600 hover:bg-gray-50 transition-all duration-200 color-black"
+                            size="lg"
+                          >
+                            <Camera className="mr-2 h-4 w-4" />
+                            Проверить другой
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -1,7 +1,6 @@
 "use client"
 
-import React from "react"
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
@@ -57,6 +56,33 @@ type TabType = "overview" | "history" | "achievements" | "settings"
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<TabType>("overview")
+
+  // Добавляю состояние для пользователя
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("access_token")
+      if (!token) {
+        setLoading(false)
+        return
+      }
+      try {
+        const res = await fetch("http://localhost:8000/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUser({ name: data.username || data.name || "", email: data.email || "" })
+        }
+      } catch (e) {
+        // Можно обработать ошибку
+      }
+      setLoading(false)
+    }
+    fetchProfile()
+  }, [])
 
   // Mock user data
   const userStats: UserStats = {
@@ -168,8 +194,12 @@ export default function Profile() {
 
               {/* User Info */}
               <div className="text-center md:text-left flex-1">
-                <h2 className="text-3xl font-bold mb-2">Ахмед Исламов</h2>
-                <p className="text-green-100 mb-4">ahmed.islamov@example.com</p>
+                <h2 className="text-3xl font-bold mb-2">
+                  {loading ? "Загрузка..." : user?.name || "Имя не найдено"}
+                </h2>
+                <p className="text-green-100 mb-4">
+                  {loading ? "" : user?.email || ""}
+                </p>
                 <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                   <Badge className="bg-white/20 text-white border-white/30 px-3 py-1">
                     <Calendar className="mr-1 h-4 w-4" />С {new Date(userStats.joinDate).toLocaleDateString("ru-RU")}
@@ -444,70 +474,8 @@ export default function Profile() {
               ))}
             </div>
           )}
-
-          {activeTab === "settings" && (
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center">
-                    <User className="mr-2 h-5 w-5" />👤 Личные данные
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 pt-8 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Имя</label>
-                    <input
-                      type="text"
-                      defaultValue="Ахмед Исламов"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input
-                      type="email"
-                      defaultValue="ahmed.islamov@example.com"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <Button className="w-full bg-green-600 hover:bg-green-700">Сохранить изменения</Button>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center">
-                    <Bell className="mr-2 h-5 w-5" />🔔 Уведомления
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 pt-8 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">Push уведомления</div>
-                      <div className="text-sm text-gray-500">Получать уведомления на устройство</div>
-                    </div>
-                    <input type="checkbox" defaultChecked className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">Email уведомления</div>
-                      <div className="text-sm text-gray-500">Получать новости на email</div>
-                    </div>
-                    <input type="checkbox" className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">Напоминания</div>
-                      <div className="text-sm text-gray-500">Напоминать о проверке продуктов</div>
-                    </div>
-                    <input type="checkbox" defaultChecked className="w-5 h-5 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
       </div>
     </div>
   )
-} 
+}
