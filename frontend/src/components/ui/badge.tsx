@@ -1,15 +1,17 @@
 import React from 'react'
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary' | 'outline'
+  variant?: 'default' | 'secondary' | 'outline' | 'destructive' | 'ingredient'
 }
 
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', ...props }, ref) => {
     const variants = {
-      default: 'bg-primary text-primary-foreground hover:bg-primary/80',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-      outline: 'text-foreground border border-input hover:bg-accent hover:text-accent-foreground',
+      default: 'border-transparent bg-green-500 text-primary-foreground shadow hover:bg-green-500/80',
+      secondary: 'border-transparent bg-red-500 text-primary-foreground shadow hover:bg-red-500/80',
+      destructive: 'border-transparent bg-yellow-500 text-primary-foreground shadow hover:bg-yellow-500/80',
+      outline: 'border-transparent bg-cyan-500 text-primary-foreground shadow hover:bg-cyan-500/80',
+      ingredient: 'border-transparent bg-gray-200 text-gray-800 shadow-none'
     }
 
     return (

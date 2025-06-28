@@ -1,0 +1,4 @@
+id,email,username,password_hash,is_active,is_verified,verification_token,reset_token,created_at,updated_at
+1,220103384@stu.sdu.edu.kz,Nurdaulet Assanov,$2b$12$S86UA2Sx9VQwo2gIJ5WXoekysyaMdGPFq5PXilr6XXcK0CIiM8XZK,t,t,,,2025-06-23 14:20:48.526623+00,2025-06-23 14:21:12.894202+00
+2,yerassyl72934@gmail.com,Yerassyl Sailaubai,$2b$12$KIPQdt3xc80L3hTFrc.8Ye7lafv0qv/j.nI/KnAODJrlKYcsrII7O,t,t,,,2025-06-23 15:18:47.859349+00,2025-06-23 15:19:23.606672+00
+3,turarbek@mail.ru,Turarbek,$2b$12$euMOENnwdgfipCCgs8eNr.gVlZ/8XvCfz.4n3Jvlfnj0qP7zCVFm.,t,t,,,2025-06-24 11:50:16.94459+00,2025-06-24 11:50:31.165869+00

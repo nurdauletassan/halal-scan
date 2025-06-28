@@ -26,20 +26,27 @@ class ProductAnalysisAgent:
         На изображении — упаковка пищевого продукта.
 
         1. Прочитай только тот текст, который **разборчиво виден** на упаковке.
-        2. Найди состав (если он есть) и выдай результат в JSON:
+        2. Найди бренд (торговую марку), название продукта, производителя (юридическое лицо), страну производства и состав (если он есть) и выдай результат в JSON:
 
         {
-          "brand": "...",
-          "product_name": "...",
-          "ingredients": ["Ингредиент1", "Ингредиент2", ...]
+          "brand": "...",           # Бренд/торговая марка (например, The Coca Cola)
+          "product_name": "...",    # Короткое название продукта (не более 3–4 слов)
+          "manufacturer": "...",    # Производитель/юридическое лицо (например, ООО Кока-Кола ЭйчБиСи Евразия)
+          "country": "...",         # Страна производства (например, Казахстан)
+          "ingredients": ["...", ...]
         }
 
-        ⚠️ Если состав или название бренда/продукта не виден или не читаем:
+        - Поле product_name должно быть максимально коротким, без лишних описаний и вкусов.  
+          Например, вместо "Драже Skittles в сахарной глазури со вкусами лимона, лайма, апельсина, клубники и черной смородины" — просто "Драже Skittles".
+
+        ⚠️ Если какой-то из параметров не виден или не читаем:
         {
           "brand": null,
           "product_name": null,
+          "manufacturer": null,
+          "country": null,
           "ingredients": [],
-          "note": "Состав или продукт не удалось распознать на изображении"
+          "note": "Не удалось распознать на изображении"
         }
 
         Не додумывай и не фантазируй ингредиенты. Используй **только** то, что видно на изображении.
@@ -79,18 +86,24 @@ class ProductAnalysisAgent:
                 parsed = {
                     "brand": None,
                     "product_name": None,
+                    "manufacturer": None,
+                    "country": None,
                     "ingredients": [],
                     "note": "Ошибка разбора ответа от GPT"
                 }
 
         brand = parsed.get("brand")
         product_name = parsed.get("product_name")
+        manufacturer = parsed.get("manufacturer")
+        country = parsed.get("country")
         ingredients = parsed.get("ingredients", [])
 
         if not ingredients:
             return {
                 "brand": brand,
                 "product_name": product_name,
+                "manufacturer": manufacturer,
+                "country": country,
                 "ingredients": [],
                 "status": "doubtful",
                 "confidence": "низкая",
@@ -114,6 +127,8 @@ class ProductAnalysisAgent:
         result = {
             "brand": brand,
             "product_name": product_name,
+            "manufacturer": manufacturer,
+            "country": country,
             "ingredients": ingredients,
             **halal_result
         }
@@ -160,7 +175,6 @@ class ProductAnalysisAgent:
             "concerns": [reason],
             "recommendation": "Проверьте состав вручную или поищите халяль сертификат."
         }
-
     def extract_ingredients_from_image(self, image_content: bytes) -> List[str]:
         image = Image.open(BytesIO(image_content))
         text = pytesseract.image_to_string(image, lang="rus+eng").lower()
@@ -179,3 +193,4 @@ class ProductAnalysisAgent:
         # Очищаем и разбиваем
         ingredients = [i.strip().capitalize() for i in re.split(r",|;|\n|\r", raw_ingredients) if 2 < len(i.strip()) < 50]
         return ingredients
+

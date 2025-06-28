@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const Header = () => {
@@ -37,43 +37,50 @@ const Header = () => {
           </div>
           <nav className="hidden md:flex space-x-8">
             <Link to="/" className="text-foreground hover:text-primary transition-colors">
-              Home
+              Главная
             </Link>
             <Link to="/scan" className="text-foreground hover:text-primary transition-colors">
-              Scan
+              Скан
             </Link>
-            <Link to="/about" className="text-foreground hover:text-primary transition-colors">
-              About
+            <Link to="/history" className="text-foreground hover:text-primary transition-colors">
+              История
+            </Link>
+            <Link to="/profile" className="text-foreground hover:text-primary transition-colors">
+              Профиль
             </Link>
           </nav>
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="text-gray-600 hover:text-primary flex items-center">
-                  <User className="h-6 w-6 mr-1" />
-                  Profile
-                </Link>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
+                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors hidden sm:inline-flex"
                 >
                   Logout
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="sm:hidden text-red-600 hover:text-primary transition-colors"
+                  aria-label="Выйти"
+                  style={{ background: 'none', border: 'none', padding: 0 }}
+                >
+                  <LogOut className="h-6 w-6" />
                 </button>
               </>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  className="text-foreground hover:text-primary transition-colors"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Register
-                </Link>
+            <Link
+              to="/login"
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Register
+            </Link>
               </>
             )}
           </div>

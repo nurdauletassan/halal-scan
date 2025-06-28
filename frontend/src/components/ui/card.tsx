@@ -44,7 +44,7 @@ CardTitle.displayName = 'CardTitle'
 const CardContent = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, ...props }, ref) => {
     return (
-      <div ref={ref} className={`p-6 pt-0 ${className}`} {...props} />
+      <div ref={ref} className={`${className}`} {...props} />
     )
   }
 )

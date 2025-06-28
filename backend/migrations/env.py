@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -10,6 +13,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from auth.base import Base
 from auth import models
+from product_analysis.models import ProductCheckHistory
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

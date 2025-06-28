@@ -50,7 +50,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="relative min-h-[85vh] flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
+    <div className="relative min-h-[85vh] flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 p-3">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
