@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
@@ -5,11 +7,16 @@ import secrets
 import random
 import string
 
+load_dotenv()
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY = "your_secret_key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 24))
+
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY not found in environment variables")
 
 # Пароли
 
